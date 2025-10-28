@@ -1,11 +1,15 @@
 from pico2d import load_image, get_time
 from sdl2 import SDL_KEYDOWN, SDLK_SPACE, SDLK_RIGHT, SDL_KEYUP, SDLK_LEFT
 
+from Lecture10_Game_World import game_world
+from Lecture10_Game_World.ball import Ball
 from state_machine import StateMachine
 
 
 def space_down(e): # e is space down ?
     return e[0] == 'INPUT' and e[1].type == SDL_KEYDOWN and e[1].key == SDLK_SPACE
+def space_up(e):
+    return e[0] == 'INPUT' and e[1].type == SDL_KEYUP and e[1].key == SDLK_SPACE
 
 time_out = lambda e: e[0] == 'TIMEOUT'
 
@@ -40,7 +44,8 @@ class Idle:
 
 
     def exit(self, e):
-        pass
+        if space_down(e):
+            self.boy.fire_ball()
 
     def do(self):
         self.boy.frame = (self.boy.frame + 1) % 8
@@ -91,7 +96,8 @@ class Run:
             self.boy.dir = self.boy.face_dir = -1
 
     def exit(self, e):
-        pass
+        if space_down(e):
+            self.boy.fire_ball()
 
     def do(self):
         self.boy.frame = (self.boy.frame + 1) % 8
@@ -110,8 +116,8 @@ class Run:
 
 
 class Boy:
-    def __init__(self):
-        self.x, self.y = 400, 90
+    def __init__(self, x=400, y=90):
+        self.x, self.y = x, y
         self.frame = 0
         self.face_dir = 1
         self.dir = 0
@@ -124,8 +130,13 @@ class Boy:
             self.IDLE,
             {
                 self.SLEEP : {space_down: self.IDLE},
-                self.IDLE : {time_out: self.SLEEP, right_down: self.RUN, left_down: self.RUN, right_up: self.RUN, left_up: self.RUN},
-                self.RUN : {right_up: self.IDLE, left_up: self.IDLE, right_down: self.IDLE, left_down: self.IDLE}
+                self.IDLE : {time_out: self.SLEEP,
+                             right_down: self.RUN, left_down: self.RUN,
+                             right_up: self.RUN, left_up: self.RUN,
+                             space_down: self.IDLE},
+                self.RUN : {right_up: self.IDLE, left_up: self.IDLE,
+                            right_down: self.IDLE, left_down: self.IDLE,
+                            space_down: self.RUN}
             }
         )
 
@@ -138,3 +149,9 @@ class Boy:
 
     def draw(self):
         self.state_machine.draw()
+
+    def fire_ball(self):
+        print('Fire Ball!')
+        # ball 생성 후 발사
+        ball = Ball(self.x, self.y, self.face_dir * 10)
+        game_world.add_object(ball, 1)
